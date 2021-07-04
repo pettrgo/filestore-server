@@ -5,16 +5,16 @@ import (
 	"filestore-server/meta"
 	"filestore-server/util"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
-	"io"
 	"os"
 	"strconv"
 	"time"
 )
 
 //处理文件上传
-func UploadHandler(w http.ResponseWriter, r *http.Request)  {
+func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		//返回上传html页面
 		data, err := ioutil.ReadFile("./static/view/index.html")
@@ -22,8 +22,8 @@ func UploadHandler(w http.ResponseWriter, r *http.Request)  {
 			io.WriteString(w, "internal server error")
 			return
 		}
-		io.WriteString(w,string(data))
-	}else if r.Method == "POST" {
+		io.WriteString(w, string(data))
+	} else if r.Method == "POST" {
 		//接收文件流及存储到本地目录
 		file, head, err := r.FormFile("file")
 		if err != nil {
@@ -34,7 +34,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request)  {
 
 		fileMeta := meta.FileMeta{
 			FileName: head.Filename,
-			Location: "F://"+head.Filename,
+			Location: "F://" + head.Filename,
 			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 
@@ -45,26 +45,26 @@ func UploadHandler(w http.ResponseWriter, r *http.Request)  {
 		}
 		defer newFile.Close()
 
-		 fileMeta.FileSize, err = io.Copy(newFile, file)
-		 if err != nil {
+		fileMeta.FileSize, err = io.Copy(newFile, file)
+		if err != nil {
 			fmt.Printf("Fail to save data into file, err: %s\n", err.Error())
 		}
 
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
-		meta.UpdateFileMeta(fileMeta)
-
+		//meta.UpdateFileMeta(fileMeta)
+		_ = meta.UpdateFileMetaDB(fileMeta)
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	}
 }
 
 //上传已完成
-func UpLoadSucHandler(w http.ResponseWriter, r *http.Request)  {
+func UpLoadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished")
 }
 
 //获取文件元信息
-func GetFileMetaHandler(w http.ResponseWriter, r *http.Request)  {
+func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	filehash := r.Form["filehash"][0]
 	fMeta := meta.GetFileMeta(filehash)
@@ -77,7 +77,7 @@ func GetFileMetaHandler(w http.ResponseWriter, r *http.Request)  {
 }
 
 //查询批量的文件元信息
-func FileQueryHandler(w http.ResponseWriter, r *http.Request)  {
+func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	limitCnt, _ := strconv.Atoi(r.Form.Get("limit"))
@@ -90,7 +90,7 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request)  {
 	w.Write(data)
 }
 
-func DownloadHandler(w http.ResponseWriter, r *http.Request)  {
+func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	fsha1 := r.Form.Get("filehash")
 	fm := meta.GetFileMeta(fsha1)
@@ -108,11 +108,11 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	w.Header().Set("Content-Type", "application/octect-stream")
-	w.Header().Set("Content-Disposition", "attachment;filename=\""+ fm.FileName+"\"")
+	w.Header().Set("Content-Disposition", "attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
 }
 
-func FileUpdateMetaHandler(w http.ResponseWriter, r *http.Request )  {
+func FileUpdateMetaHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	opType := r.Form.Get("op")
 	fileSha1 := r.Form.Get("sha1")
@@ -140,7 +140,7 @@ func FileUpdateMetaHandler(w http.ResponseWriter, r *http.Request )  {
 }
 
 //删除文件及元信息
-func FileDeleteHandler(w http.ResponseWriter, r *http.Request)  {
+func FileDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	fileSha1 := r.Form.Get("filehash")
 
@@ -149,6 +149,5 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request)  {
 
 	meta.RemoveFileMeta(fileSha1)
 	w.WriteHeader(http.StatusOK)
-
 
 }
