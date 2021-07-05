@@ -10,8 +10,8 @@ import (
 
 var db *sql.DB
 
-func init()  {
-	db, _ = sql.Open("mysql", "root:root@tcp(127.0.0.1:13306)/fukeserver?charset=utf8")
+func init() {
+	db, _ = sql.Open("mysql", "root:root@tcp(192.168.152.128:13306)/fukeserver?charset=utf8")
 	db.SetMaxOpenConns(1000)
 	err := db.Ping()
 	if err != nil {
@@ -24,5 +24,3 @@ func init()  {
 func DBConn() *sql.DB {
 	return db
 }
-
-
